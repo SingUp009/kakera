@@ -32,11 +32,19 @@ function alphaToU32(a: AlphaName): number {
   return a === "Weighted" ? 1 : 0;
 }
 
-/** View the Uint8Array's backing storage as a standalone ArrayBuffer (no copy). */
+/** View the Uint8Array's backing storage as a standalone ArrayBuffer when possible. */
 function toArrayBuffer(view: Uint8Array): ArrayBuffer {
-  return view.byteOffset === 0 && view.byteLength === view.buffer.byteLength
-    ? (view.buffer as ArrayBuffer)
-    : view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
+  if (
+    view.buffer instanceof ArrayBuffer &&
+    view.byteOffset === 0 &&
+    view.byteLength === view.buffer.byteLength
+  ) {
+    return view.buffer;
+  }
+
+  const copy = new Uint8Array(view.byteLength);
+  copy.set(view);
+  return copy.buffer;
 }
 
 export async function loadTiles(
