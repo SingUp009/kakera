@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "wasm:build": "wasm-pack build ../../crates/kakera-wasm --target web --out-dir ../../apps/web/src/wasm/pkg --out-name kakera_wasm --release",
-    "prepare": "panda codegen && pnpm wasm:build",
+    "prepare": "panda codegen",
     "dev": "next dev",
-    "build": "pnpm wasm:build && next build",
+    "build": "panda codegen && pnpm wasm:build && next build",
     "start": "next start",
     "lint": "oxlint --fix",
     "format": "oxfmt",
