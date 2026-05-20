@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  PNPM_VERSION: '11'
+  NODE_VERSION: '22'
+
+jobs:
+  rust:
+    name: Rust workspace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace
+
+      - name: cargo build
+        run: cargo build --workspace
+
+  web:
+    name: apps/web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      # Rust + wasm32 target are required because `pnpm prepare` / `pnpm build`
+      # invoke `wasm-pack build ../../crates/kakera-wasm`.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: '. -> target'
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      # `prepare` hook runs `panda codegen && pnpm wasm:build` during install.
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: oxlint
+        run: pnpm exec oxlint
+
+      - name: oxfmt --check
+        run: pnpm exec oxfmt --check
+
+      - name: vitest
+        run: pnpm test:run
+
+      - name: next build
+        run: pnpm build
+
+  desktop:
+    name: apps/desktop (frontend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+
+      # `prepare` hook runs `panda codegen` during install.
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: oxlint
+        run: pnpm exec oxlint
+
+      - name: oxfmt --check
+        run: pnpm exec oxfmt --check
+
+      - name: vitest
+        run: pnpm test:run
+
+      - name: next build
+        run: pnpm build
