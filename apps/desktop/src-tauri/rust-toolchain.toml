@@ -1,0 +1,5 @@
+# MSVC linker (link.exe) is not available in this dev environment, so pin the
+# Tauri crate to the GNU host toolchain. Cargo inside src-tauri/ (including
+# `pnpm tauri dev` / `pnpm tauri build`) will use this automatically.
+[toolchain]
+channel = "stable-x86_64-pc-windows-gnu"

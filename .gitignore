@@ -1,0 +1,12 @@
+# Rust
+/target/
+
+# Experiment outputs (生成済み index/PNG/tile 群、コード外)
+/sample/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

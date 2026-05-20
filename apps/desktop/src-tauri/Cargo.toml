@@ -1,0 +1,38 @@
+# Declare this crate as its own workspace root so it does NOT inherit from the
+# repo-root Cargo.toml workspace (whose `members` is intentionally limited to
+# `crates/*`). See CLAUDE.md.
+[workspace]
+
+[package]
+name = "app"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+# `cdylib` is dropped to work around a MinGW linker limitation: the PE export
+# ordinal table is 16-bit and the Tauri dependency tree exceeds it on
+# windows-gnu, causing `ld` to fail with "export ordinal too large". Desktop
+# builds only need `rlib` (so `main.rs` can call `app_lib::run`); `staticlib`
+# is kept for potential mobile (iOS/Android) builds. Re-add `cdylib` if/when
+# building for Android, ideally behind a target-conditional in a separate
+# mobile crate or by switching to the MSVC toolchain.
+crate-type = ["staticlib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.2", features = [] }
+
+[dependencies]
+kakera-core = { path = "../../../crates/kakera-core", features = ["serde"] }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.2", features = [] }
+tauri-plugin-log = "2"

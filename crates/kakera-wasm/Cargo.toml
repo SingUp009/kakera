@@ -1,0 +1,20 @@
+[package]
+name = "kakera-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+kakera-core = { path = "../kakera-core", features = ["serde"] }
+wasm-bindgen = { workspace = true }
+serde_json = { workspace = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
