@@ -9,6 +9,12 @@ export interface OutputSize {
   bytes: number;
 }
 
+export interface OutputSizeLimitIssue {
+  message: string;
+  webAction: string;
+  desktopSuggestion: string;
+}
+
 /** Browsers reject canvases beyond ~these limits; keep a conservative cap. */
 export const MAX_CANVAS_EDGE = 16384;
 /** Refuse outputs whose RGBA buffer would exceed this (~0.5 GiB). */
@@ -36,14 +42,27 @@ export function computeOutputSize(
   return { cols, rows, width, height, bytes: width * height * 4 };
 }
 
-/** Human-facing reason the output is too large to render, or null if OK. */
-export function outputSizeError(size: OutputSize): string | null {
+/** Human-facing details when the output is too large to render, or null if OK. */
+export function outputSizeLimitIssue(size: OutputSize): OutputSizeLimitIssue | null {
   if (size.width > MAX_CANVAS_EDGE || size.height > MAX_CANVAS_EDGE) {
-    return `出力サイズ ${size.width}×${size.height}px がブラウザの上限 (${MAX_CANVAS_EDGE}px) を超えています。セルサイズか拡大率を下げてください。`;
+    return {
+      message: `出力サイズ ${size.width}×${size.height}px がブラウザの上限 (${MAX_CANVAS_EDGE}px) を超えています。`,
+      webAction: "Web版ではセルサイズか拡大率を下げると生成できます。",
+      desktopSuggestion: "大きいまま作りたい場合は、インストール版を使う選択肢もあります。",
+    };
   }
   if (size.bytes > MAX_OUTPUT_BYTES) {
     const mb = Math.round(size.bytes / (1024 * 1024));
-    return `出力バッファが約 ${mb}MB と大きすぎます。セルサイズか拡大率を下げてください。`;
+    return {
+      message: `出力バッファが約 ${mb}MB と大きすぎます。`,
+      webAction: "Web版ではセルサイズか拡大率を下げると生成できます。",
+      desktopSuggestion: "大きいまま作りたい場合は、インストール版を使う選択肢もあります。",
+    };
   }
   return null;
+}
+
+/** Human-facing reason the output is too large to render, or null if OK. */
+export function outputSizeError(size: OutputSize): string | null {
+  return outputSizeLimitIssue(size)?.message ?? null;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeOutputSize, outputSizeError } from "./outputSize";
+import { computeOutputSize, outputSizeError, outputSizeLimitIssue } from "./outputSize";
 
 describe("computeOutputSize", () => {
   it("matches MosaicGrid::compute ceil + out-size (100x100, cell 16, scale 1)", () => {
@@ -38,5 +38,18 @@ describe("computeOutputSize", () => {
       output_scale: 1,
     });
     expect(outputSizeError(s!)).not.toBeNull();
+  });
+
+  it("adds a low-key desktop suggestion for browser-limited outputs", () => {
+    const s = computeOutputSize(20000, 20000, {
+      cell_width: 16,
+      cell_height: 16,
+      output_scale: 1,
+    });
+    const issue = outputSizeLimitIssue(s!);
+    expect(issue?.webAction).toContain("セルサイズか拡大率");
+    expect(issue?.desktopSuggestion).toBe(
+      "大きいまま作りたい場合は、インストール版を使う選択肢もあります。",
+    );
   });
 });

@@ -2,9 +2,14 @@
 
 import { Box, Button, Container, Heading, HStack, Stack, Text } from "@chakra-ui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FaGithub } from "react-icons/fa";
 import { ColorModeButton } from "@/shared/components/ui/color-mode";
 import { useMosaicWorker } from "@/features/mosaic/hooks/useMosaicWorker";
-import { computeOutputSize, outputSizeError } from "@/features/mosaic/lib/outputSize";
+import {
+  computeOutputSize,
+  outputSizeLimitIssue,
+  type OutputSizeLimitIssue,
+} from "@/features/mosaic/lib/outputSize";
 import {
   DEFAULT_PARAMS,
   type MosaicResult,
@@ -29,6 +34,7 @@ export function MosaicApp() {
   const [params, setParams] = useState<ParamsDTO>(DEFAULT_PARAMS);
   const [result, setResult] = useState<MosaicResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sizeLimitIssue, setSizeLimitIssue] = useState<OutputSizeLimitIssue | null>(null);
 
   // Signature of the index currently loaded in the worker.
   const loadedSig = useRef<string | null>(null);
@@ -41,6 +47,7 @@ export function MosaicApp() {
   const onSelectTarget = useCallback(async (file: File) => {
     setTargetFile(file);
     setError(null);
+    setSizeLimitIssue(null);
     setTargetUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
@@ -60,11 +67,13 @@ export function MosaicApp() {
     loadedSig.current = null;
     setTilesInfo(null);
     setError(null);
+    setSizeLimitIssue(null);
   }, []);
 
   const run = useCallback(
     async (kind: RenderKind) => {
       setError(null);
+      setSizeLimitIssue(null);
       if (!targetFile || !targetDims) {
         setError("ターゲット画像を選択してください");
         return;
@@ -80,9 +89,10 @@ export function MosaicApp() {
         );
         return;
       }
-      const sizeErr = outputSizeError(size);
-      if (sizeErr) {
-        setError(sizeErr);
+      const limitIssue = outputSizeLimitIssue(size);
+      if (limitIssue) {
+        setSizeLimitIssue(limitIssue);
+        setError(limitIssue.message);
         return;
       }
 
@@ -116,12 +126,25 @@ export function MosaicApp() {
 
   return (
     <Container maxW="6xl" py="8">
-      <HStack justify="space-between" mb="6">
+      <HStack justify="space-between" mb="6" gap="4" align="flex-start">
         <Stack gap="0">
           <Heading size="2xl">kakera</Heading>
           <Text color="fg.muted">画像フォルダでフォトモザイクを生成</Text>
         </Stack>
-        <ColorModeButton />
+        <HStack gap="2" flexShrink="0">
+          <Button asChild variant="ghost" size="sm">
+            <a
+              href="https://github.com/SingUp009/kakera"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub リポジトリを開く"
+            >
+              <FaGithub />
+              GitHub
+            </a>
+          </Button>
+          <ColorModeButton />
+        </HStack>
       </HStack>
 
       <Stack direction={{ base: "column", lg: "row" }} gap="8" align="flex-start">
@@ -172,9 +195,23 @@ export function MosaicApp() {
           ) : null}
           {error ? (
             <Box borderWidth="1px" borderColor="red.500" rounded="md" p="3">
-              <Text color="red.500" fontSize="sm">
+              <Text
+                color="red.500"
+                fontSize="sm"
+                fontWeight={sizeLimitIssue ? "semibold" : "normal"}
+              >
                 {error}
               </Text>
+              {sizeLimitIssue ? (
+                <Stack gap="1" mt="2">
+                  <Text color="fg.muted" fontSize="sm">
+                    {sizeLimitIssue.webAction}
+                  </Text>
+                  <Text color="fg.muted" fontSize="sm">
+                    {sizeLimitIssue.desktopSuggestion}
+                  </Text>
+                </Stack>
+              ) : null}
             </Box>
           ) : null}
         </Stack>
