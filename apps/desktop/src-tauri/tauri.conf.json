@@ -1,8 +1,9 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "desktop",
+  "productName": "kakera",
+  "mainBinaryName": "kakera",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.singup009.kakera",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",

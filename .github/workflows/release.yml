@@ -1,0 +1,80 @@
+name: Release (desktop)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name to release as (e.g. v0.1.0). Created if it does not exist yet.'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  PNPM_VERSION: '10.27.0'
+  NODE_VERSION: '22'
+  # Override apps/desktop/src-tauri/rust-toolchain.toml (which pins to
+  # `stable-x86_64-pc-windows-gnu` for the user's local dev env where MSVC
+  # link.exe is unavailable). On CI we have full MSVC tools, which is faster
+  # and sidesteps the MinGW PE export ordinal limit noted in the crate's
+  # Cargo.toml.
+  RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-msvc
+
+jobs:
+  windows:
+    name: Build & upload Windows artifacts (.exe + NSIS)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: 'apps/desktop/src-tauri -> target'
+
+      - name: pnpm install
+        working-directory: apps/desktop
+        run: pnpm install --frozen-lockfile
+
+      - name: tauri build (NSIS)
+        working-directory: apps/desktop
+        run: pnpm tauri build --bundles nsis
+
+      - name: Determine release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create draft release & upload artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          name: kakera ${{ steps.tag.outputs.name }}
+          draft: true
+          generate_release_notes: true
+          # Raw portable exe + NSIS installer.
+          # NSIS file name format: `<productName>_<version>_x64-setup.exe`.
+          files: |
+            apps/desktop/src-tauri/target/release/kakera.exe
+            apps/desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
