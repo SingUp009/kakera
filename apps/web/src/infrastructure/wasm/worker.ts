@@ -36,9 +36,7 @@ async function ensureEngine(): Promise<MosaicEngine> {
   return engine;
 }
 
-async function handleLoadTiles(
-  req: Extract<WorkerRequest, { kind: "loadTiles" }>,
-): Promise<void> {
+async function handleLoadTiles(req: Extract<WorkerRequest, { kind: "loadTiles" }>): Promise<void> {
   const eng = await ensureEngine();
   eng.reset();
   gatheredGrid = null;

@@ -60,11 +60,7 @@ pub fn gather(
     let tiles = map_collect(sources, |(id, view)| gather_one(*id, view, grid, alpha))
         .into_iter()
         .collect::<Result<Vec<_>>>()?;
-    Ok(TileIndex {
-        grid,
-        alpha,
-        tiles,
-    })
+    Ok(TileIndex { grid, alpha, tiles })
 }
 
 /// Nearest tile id by squared feature distance. `Err(EmptyIndex)` if none.
@@ -73,10 +69,7 @@ pub fn nearest(index: &TileIndex, query: &TileFeature) -> Result<TileId> {
 }
 
 /// Nearest tile id together with its squared feature distance.
-pub(crate) fn nearest_with_dist(
-    index: &TileIndex,
-    query: &TileFeature,
-) -> Result<(TileId, f32)> {
+pub(crate) fn nearest_with_dist(index: &TileIndex, query: &TileFeature) -> Result<(TileId, f32)> {
     let mut best: Option<(TileId, f32)> = None;
     for t in &index.tiles {
         let d = query.distance_sq(&t.feature);
@@ -94,8 +87,7 @@ mod tests {
     use crate::color::Rgb;
 
     fn solid(w: u32, h: u32, rgba: [u8; 4]) -> RgbaImage {
-        let data: Vec<u8> = std::iter::repeat(rgba)
-            .take((w * h) as usize)
+        let data: Vec<u8> = std::iter::repeat_n(rgba, (w * h) as usize)
             .flatten()
             .collect();
         RgbaImage::new(w, h, data).unwrap()

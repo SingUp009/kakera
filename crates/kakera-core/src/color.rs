@@ -34,6 +34,7 @@ pub enum AlphaPolicy {
 ///
 /// `region_*` must lie within `view`. A source pixel at local `(lx, ly)`
 /// maps to bucket `col = lx * grid_w / region_w`, `row = ly * grid_h / region_h`.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn average_grid(
     view: &RgbaView<'_>,
     region_x: u32,
@@ -93,8 +94,7 @@ mod tests {
     use crate::image::RgbaImage;
 
     fn solid(w: u32, h: u32, rgba: [u8; 4]) -> RgbaImage {
-        let data: Vec<u8> = std::iter::repeat(rgba)
-            .take((w * h) as usize)
+        let data: Vec<u8> = std::iter::repeat_n(rgba, (w * h) as usize)
             .flatten()
             .collect();
         RgbaImage::new(w, h, data).unwrap()
@@ -102,8 +102,16 @@ mod tests {
 
     #[test]
     fn distance_sq_basics() {
-        let a = Rgb { r: 0.0, g: 0.0, b: 0.0 };
-        let b = Rgb { r: 3.0, g: 4.0, b: 0.0 };
+        let a = Rgb {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+        };
+        let b = Rgb {
+            r: 3.0,
+            g: 4.0,
+            b: 0.0,
+        };
         assert_eq!(a.distance_sq(&a), 0.0);
         assert_eq!(a.distance_sq(&b), 25.0);
         assert_eq!(a.distance_sq(&b), b.distance_sq(&a));
@@ -115,7 +123,14 @@ mod tests {
         let cells = average_grid(&img.view(), 0, 0, 8, 8, 3, 3, AlphaPolicy::Ignore);
         assert_eq!(cells.len(), 9);
         for c in cells {
-            assert_eq!(c, Rgb { r: 255.0, g: 0.0, b: 0.0 });
+            assert_eq!(
+                c,
+                Rgb {
+                    r: 255.0,
+                    g: 0.0,
+                    b: 0.0
+                }
+            );
         }
     }
 
@@ -128,8 +143,22 @@ mod tests {
         ];
         let img = RgbaImage::new(2, 1, data).unwrap();
         let cells = average_grid(&img.view(), 0, 0, 2, 1, 2, 1, AlphaPolicy::Ignore);
-        assert_eq!(cells[0], Rgb { r: 255.0, g: 255.0, b: 255.0 });
-        assert_eq!(cells[1], Rgb { r: 0.0, g: 0.0, b: 0.0 });
+        assert_eq!(
+            cells[0],
+            Rgb {
+                r: 255.0,
+                g: 255.0,
+                b: 255.0
+            }
+        );
+        assert_eq!(
+            cells[1],
+            Rgb {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0
+            }
+        );
     }
 
     #[test]
@@ -142,7 +171,14 @@ mod tests {
         ];
         let img = RgbaImage::new(2, 2, data).unwrap();
         let cells = average_grid(&img.view(), 0, 0, 2, 2, 1, 1, AlphaPolicy::Ignore);
-        assert_eq!(cells[0], Rgb { r: 100.0, g: 100.0, b: 100.0 });
+        assert_eq!(
+            cells[0],
+            Rgb {
+                r: 100.0,
+                g: 100.0,
+                b: 100.0
+            }
+        );
     }
 
     #[test]
@@ -154,7 +190,14 @@ mod tests {
         ];
         let img = RgbaImage::new(2, 1, data).unwrap();
         let cells = average_grid(&img.view(), 0, 0, 2, 1, 1, 1, AlphaPolicy::Weighted);
-        assert_eq!(cells[0], Rgb { r: 255.0, g: 0.0, b: 0.0 });
+        assert_eq!(
+            cells[0],
+            Rgb {
+                r: 255.0,
+                g: 0.0,
+                b: 0.0
+            }
+        );
     }
 
     #[test]

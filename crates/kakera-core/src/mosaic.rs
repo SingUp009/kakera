@@ -117,7 +117,13 @@ impl MosaicGrid {
 }
 
 /// Per-cell target region, clipped to the target image bounds.
-fn cell_region(grid: &MosaicGrid, target_w: u32, target_h: u32, col: u32, row: u32) -> (u32, u32, u32, u32) {
+fn cell_region(
+    grid: &MosaicGrid,
+    target_w: u32,
+    target_h: u32,
+    col: u32,
+    row: u32,
+) -> (u32, u32, u32, u32) {
     let rx = col * grid.cell_width;
     let ry = row * grid.cell_height;
     let rw = grid.cell_width.min(target_w - rx);
@@ -270,11 +276,9 @@ fn apply_max_usage(
                 .then(a.0.cmp(&b.0))
         });
         for &(c, _) in cells.iter().skip(cap as usize) {
-            if let Some((nid, nd)) =
-                best_tile_where(index, &feats[c], |id| {
-                    usage.get(&id).copied().unwrap_or(0) < cap
-                })
-            {
+            if let Some((nid, nd)) = best_tile_where(index, &feats[c], |id| {
+                usage.get(&id).copied().unwrap_or(0) < cap
+            }) {
                 if let Some(u) = usage.get_mut(&t.id) {
                     *u -= 1;
                 }
@@ -385,7 +389,7 @@ fn ensure_coverage(
                 continue;
             }
             let regret = f.distance_sq(&t.feature) - best_d[c];
-            if best.map_or(true, |(_, br)| regret < br) {
+            if best.is_none_or(|(_, br)| regret < br) {
                 best = Some((c, regret));
             }
         }
@@ -501,8 +505,7 @@ pub fn build(
         let (ox, oy) = (col * ocw, row * och);
         paint_cell(&mut out, ox, oy, ocw, och, &tile.view(), params.alpha);
         if params.color_adjust > 0.0 {
-            let (rx, ry, rw, rh) =
-                cell_region(&grid, target.width(), target.height(), col, row);
+            let (rx, ry, rw, rh) = cell_region(&grid, target.width(), target.height(), col, row);
             color_adjust_cell(
                 &mut out,
                 ox,
@@ -548,7 +551,7 @@ pub fn preview(
     Ok(out)
 }
 
-fn index_feature<'a>(index: &'a TileIndex, id: TileId) -> &'a TileFeature {
+fn index_feature(index: &TileIndex, id: TileId) -> &TileFeature {
     // `id` came from `nearest(index, ..)` so it is always present.
     &index
         .tiles
@@ -682,8 +685,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn solid(w: u32, h: u32, rgba: [u8; 4]) -> RgbaImage {
-        let data: Vec<u8> = std::iter::repeat(rgba)
-            .take((w * h) as usize)
+        let data: Vec<u8> = std::iter::repeat_n(rgba, (w * h) as usize)
             .flatten()
             .collect();
         RgbaImage::new(w, h, data).unwrap()
@@ -692,10 +694,7 @@ mod tests {
     struct MockProvider(HashMap<TileId, RgbaImage>);
     impl TileProvider for MockProvider {
         fn tile(&self, id: TileId) -> Result<RgbaImage> {
-            self.0
-                .get(&id)
-                .cloned()
-                .ok_or(KakeraError::MissingTile(id))
+            self.0.get(&id).cloned().ok_or(KakeraError::MissingTile(id))
         }
     }
 
@@ -889,11 +888,7 @@ mod tests {
         ));
     }
 
-    fn params_with(
-        ensure_all: bool,
-        max: Option<u32>,
-        adjacent: bool,
-    ) -> MosaicParams {
+    fn params_with(ensure_all: bool, max: Option<u32>, adjacent: bool) -> MosaicParams {
         MosaicParams {
             cell_width: 2,
             cell_height: 2,
@@ -912,18 +907,26 @@ mod tests {
     #[test]
     fn assign_picks_greedy_leaves_tiles_unused() {
         let feats = vec![feat1([250.0, 5.0, 5.0]); 8]; // all closest to red (id 0)
-        let picks =
-            assign_picks(&four_color_index(), &feats, 8, &params_with(false, None, false))
-                .unwrap();
+        let picks = assign_picks(
+            &four_color_index(),
+            &feats,
+            8,
+            &params_with(false, None, false),
+        )
+        .unwrap();
         assert!(picks.iter().all(|&id| id == 0));
     }
 
     #[test]
     fn assign_picks_coverage_uses_every_tile() {
         let feats = vec![feat1([250.0, 5.0, 5.0]); 8];
-        let picks =
-            assign_picks(&four_color_index(), &feats, 8, &params_with(true, None, false))
-                .unwrap();
+        let picks = assign_picks(
+            &four_color_index(),
+            &feats,
+            8,
+            &params_with(true, None, false),
+        )
+        .unwrap();
         assert_eq!(picks.len(), 8);
         let used: std::collections::BTreeSet<_> = picks.iter().copied().collect();
         assert_eq!(used, [0, 1, 2, 3].into_iter().collect());
@@ -934,9 +937,13 @@ mod tests {
     #[test]
     fn coverage_noop_when_more_tiles_than_cells() {
         let feats = vec![feat1([250.0, 5.0, 5.0]); 2]; // 2 cells, 4 tiles
-        let picks =
-            assign_picks(&four_color_index(), &feats, 2, &params_with(true, None, false))
-                .unwrap();
+        let picks = assign_picks(
+            &four_color_index(),
+            &feats,
+            2,
+            &params_with(true, None, false),
+        )
+        .unwrap();
         assert_eq!(picks, vec![0, 0]); // pigeonhole-infeasible -> greedy stands
     }
 
@@ -1169,8 +1176,13 @@ mod tests {
             output_scale: 4,
             ..MosaicParams::default()
         };
-        let out =
-            build(&target.view(), &white_index_solid(200.0, 100.0, 50.0), &prov, &p).unwrap();
+        let out = build(
+            &target.view(),
+            &white_index_solid(200.0, 100.0, 50.0),
+            &prov,
+            &p,
+        )
+        .unwrap();
         // 4 cols * cell 2 * scale 4 = 32
         assert_eq!((out.width(), out.height()), (32, 32));
         let v = out.view();

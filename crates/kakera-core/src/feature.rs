@@ -17,16 +17,7 @@ impl TileFeature {
         if grid < 1 {
             return Err(KakeraError::InvalidGrid { grid });
         }
-        let cells = average_grid(
-            view,
-            0,
-            0,
-            view.width(),
-            view.height(),
-            grid,
-            grid,
-            alpha,
-        );
+        let cells = average_grid(view, 0, 0, view.width(), view.height(), grid, grid, alpha);
         Ok(TileFeature { grid, cells })
     }
 
@@ -49,8 +40,7 @@ mod tests {
     use crate::image::RgbaImage;
 
     fn solid(w: u32, h: u32, rgba: [u8; 4]) -> RgbaImage {
-        let data: Vec<u8> = std::iter::repeat(rgba)
-            .take((w * h) as usize)
+        let data: Vec<u8> = std::iter::repeat_n(rgba, (w * h) as usize)
             .flatten()
             .collect();
         RgbaImage::new(w, h, data).unwrap()
@@ -63,7 +53,14 @@ mod tests {
         assert_eq!(f.grid, 3);
         assert_eq!(f.cells.len(), 9);
         for c in &f.cells {
-            assert_eq!(*c, Rgb { r: 10.0, g: 20.0, b: 30.0 });
+            assert_eq!(
+                *c,
+                Rgb {
+                    r: 10.0,
+                    g: 20.0,
+                    b: 30.0
+                }
+            );
         }
     }
 
@@ -87,11 +84,19 @@ mod tests {
     fn distance_sq_known_value() {
         let a = TileFeature {
             grid: 1,
-            cells: vec![Rgb { r: 0.0, g: 0.0, b: 0.0 }],
+            cells: vec![Rgb {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+            }],
         };
         let b = TileFeature {
             grid: 1,
-            cells: vec![Rgb { r: 3.0, g: 4.0, b: 0.0 }],
+            cells: vec![Rgb {
+                r: 3.0,
+                g: 4.0,
+                b: 0.0,
+            }],
         };
         assert_eq!(a.distance_sq(&b), 25.0);
     }

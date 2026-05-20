@@ -120,8 +120,7 @@ impl MosaicEngine {
         let index = self.require_index()?;
         let params = parse_params(params_json).map_err(js_err)?;
         let target = RgbaView::new(tw, th, target_rgba).map_err(kakera_err)?;
-        let out =
-            build(&target, index, &MapProvider(&self.tiles), &params).map_err(kakera_err)?;
+        let out = build(&target, index, &MapProvider(&self.tiles), &params).map_err(kakera_err)?;
         Ok(MosaicOutput {
             width: out.width(),
             height: out.height(),
@@ -163,7 +162,9 @@ fn u32_to_alpha(v: u32) -> Result<AlphaPolicy, String> {
     match v {
         0 => Ok(AlphaPolicy::Ignore),
         1 => Ok(AlphaPolicy::Weighted),
-        other => Err(format!("alpha must be 0 (Ignore) or 1 (Weighted), got {other}")),
+        other => Err(format!(
+            "alpha must be 0 (Ignore) or 1 (Weighted), got {other}"
+        )),
     }
 }
 

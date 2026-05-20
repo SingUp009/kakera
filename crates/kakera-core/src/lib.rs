@@ -38,10 +38,26 @@ mod serde_tests {
                 feature: TileFeature {
                     grid: 2,
                     cells: vec![
-                        Rgb { r: 1.0, g: 2.0, b: 3.0 },
-                        Rgb { r: 4.0, g: 5.0, b: 6.0 },
-                        Rgb { r: 7.0, g: 8.0, b: 9.0 },
-                        Rgb { r: 10.0, g: 11.0, b: 12.0 },
+                        Rgb {
+                            r: 1.0,
+                            g: 2.0,
+                            b: 3.0,
+                        },
+                        Rgb {
+                            r: 4.0,
+                            g: 5.0,
+                            b: 6.0,
+                        },
+                        Rgb {
+                            r: 7.0,
+                            g: 8.0,
+                            b: 9.0,
+                        },
+                        Rgb {
+                            r: 10.0,
+                            g: 11.0,
+                            b: 12.0,
+                        },
                     ],
                 },
             }],

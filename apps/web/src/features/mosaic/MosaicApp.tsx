@@ -124,11 +124,7 @@ export function MosaicApp() {
         <ColorModeButton />
       </HStack>
 
-      <Stack
-        direction={{ base: "column", lg: "row" }}
-        gap="8"
-        align="flex-start"
-      >
+      <Stack direction={{ base: "column", lg: "row" }} gap="8" align="flex-start">
         <Stack gap="6" flex="1" minW="0" w="full">
           <Box borderWidth="1px" rounded="lg" p="5">
             <Stack gap="5">

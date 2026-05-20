@@ -97,9 +97,7 @@ export function useMosaicWorker(): UseMosaicWorker {
     (files: File[], grid: number, alpha: AlphaName) => {
       // Fresh worker each load so old tiles' WASM memory is reclaimed.
       terminate();
-      return track(
-        send<TilesLoaded>((id) => ({ id, kind: "loadTiles", files, grid, alpha })),
-      );
+      return track(send<TilesLoaded>((id) => ({ id, kind: "loadTiles", files, grid, alpha })));
     },
     [send, terminate, track],
   );

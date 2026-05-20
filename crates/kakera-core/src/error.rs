@@ -17,10 +17,14 @@ pub enum KakeraError {
     #[error("invalid grid size {grid}: must be >= 1")]
     InvalidGrid { grid: u32 },
 
-    #[error("invalid cell size: cell_width={cell_width}, cell_height={cell_height} (both must be >= 1)")]
+    #[error(
+        "invalid cell size: cell_width={cell_width}, cell_height={cell_height} (both must be >= 1)"
+    )]
     InvalidCellSize { cell_width: u32, cell_height: u32 },
 
-    #[error("target image ({width}x{height}) is smaller than one cell ({cell_width}x{cell_height})")]
+    #[error(
+        "target image ({width}x{height}) is smaller than one cell ({cell_width}x{cell_height})"
+    )]
     TargetTooSmall {
         width: u32,
         height: u32,
