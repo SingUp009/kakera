@@ -1,7 +1,7 @@
 use crate::color::{average_grid, AlphaPolicy, Rgb};
 use crate::error::{KakeraError, Result};
 use crate::feature::TileFeature;
-use crate::image::{RgbaImage, RgbaView};
+use crate::image::{image_too_large, rgba_byte_len, RgbaImage, RgbaView};
 use crate::index::{nearest_with_dist, TileId, TileIndex, TileProvider};
 use crate::parallel::map_collect;
 use std::collections::HashMap;
@@ -104,16 +104,32 @@ impl MosaicGrid {
         }
         let cols = target_w.div_ceil(params.cell_width);
         let rows = target_h.div_ceil(params.cell_height);
+        let out_width_u128 = output_dim(cols, params.cell_width, params.output_scale);
+        let out_height_u128 = output_dim(rows, params.cell_height, params.output_scale);
+        if out_width_u128 > u32::MAX as u128 || out_height_u128 > u32::MAX as u128 {
+            return Err(image_too_large(out_width_u128, out_height_u128));
+        }
+        let out_width = out_width_u128 as u32;
+        let out_height = out_height_u128 as u32;
+        let bytes = rgba_byte_len(out_width as u128, out_height as u128)
+            .ok_or_else(|| image_too_large(out_width as u128, out_height as u128))?;
+        if usize::try_from(bytes).is_err() {
+            return Err(image_too_large(out_width as u128, out_height as u128));
+        }
         Ok(MosaicGrid {
             cols,
             rows,
             cell_width: params.cell_width,
             cell_height: params.cell_height,
             scale: params.output_scale,
-            out_width: cols * params.cell_width * params.output_scale,
-            out_height: rows * params.cell_height * params.output_scale,
+            out_width,
+            out_height,
         })
     }
+}
+
+fn output_dim(cells: u32, cell_size: u32, scale: u32) -> u128 {
+    cells as u128 * cell_size as u128 * scale as u128
 }
 
 /// Per-cell target region, clipped to the target image bounds.
@@ -1161,6 +1177,39 @@ mod tests {
         let g = MosaicGrid::compute(100, 100, &p).unwrap();
         assert_eq!((g.cols, g.rows), (7, 7)); // sampling granularity unchanged
         assert_eq!((g.out_width, g.out_height), (7 * 16 * 3, 7 * 16 * 3));
+    }
+
+    #[test]
+    fn output_scale_repro_size_does_not_wrap() {
+        let p = MosaicParams {
+            cell_width: 16,
+            cell_height: 16,
+            grid: 1,
+            output_scale: 10,
+            ..MosaicParams::default()
+        };
+        let g = MosaicGrid::compute(3200, 4800, &p).unwrap();
+        assert_eq!((g.out_width, g.out_height), (32000, 48000));
+    }
+
+    #[test]
+    fn output_scale_overflow_errors() {
+        let p = MosaicParams {
+            cell_width: 1,
+            cell_height: 1,
+            grid: 1,
+            output_scale: 2,
+            ..MosaicParams::default()
+        };
+        let err = MosaicGrid::compute(u32::MAX, 1, &p).unwrap_err();
+        assert!(matches!(
+            err,
+            KakeraError::ImageTooLarge {
+                width: 8_589_934_590,
+                height: 2,
+                ..
+            }
+        ));
     }
 
     #[test]

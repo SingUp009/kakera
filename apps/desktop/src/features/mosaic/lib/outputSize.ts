@@ -9,8 +9,6 @@ export interface OutputSize {
   bytes: number;
 }
 
-/** Browsers reject canvases beyond ~these limits; keep a conservative cap. */
-export const MAX_CANVAS_EDGE = 16384;
 /** Refuse outputs whose RGBA buffer would exceed this (~0.5 GiB). */
 export const MAX_OUTPUT_BYTES = 512 * 1024 * 1024;
 
@@ -38,9 +36,6 @@ export function computeOutputSize(
 
 /** Human-facing reason the output is too large to render, or null if OK. */
 export function outputSizeError(size: OutputSize): string | null {
-  if (size.width > MAX_CANVAS_EDGE || size.height > MAX_CANVAS_EDGE) {
-    return `出力サイズ ${size.width}×${size.height}px がブラウザの上限 (${MAX_CANVAS_EDGE}px) を超えています。セルサイズか拡大率を下げてください。`;
-  }
   if (size.bytes > MAX_OUTPUT_BYTES) {
     const mb = Math.round(size.bytes / (1024 * 1024));
     return `出力バッファが約 ${mb}MB と大きすぎます。セルサイズか拡大率を下げてください。`;
