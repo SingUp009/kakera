@@ -59,6 +59,9 @@ pub enum KakeraError {
 
     #[error("output_scale must be >= 1, got {scale}")]
     InvalidOutputScale { scale: u32 },
+
+    #[error("image {width}x{height} exceeds supported size")]
+    ImageTooLarge { width: u128, height: u128 },
 }
 
 pub type Result<T> = core::result::Result<T, KakeraError>;

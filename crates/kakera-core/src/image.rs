@@ -30,10 +30,14 @@ impl RgbaImage {
     /// Fully transparent canvas (all zero bytes).
     pub fn zeroed(width: u32, height: u32) -> Result<Self> {
         let expected = expected_len(width, height)?;
+        let mut data = Vec::<u8>::new();
+        data.try_reserve_exact(expected)
+            .map_err(|_| image_too_large(width as u128, height as u128))?;
+        data.resize(expected, 0);
         Ok(Self {
             width,
             height,
-            data: vec![0u8; expected],
+            data,
         })
     }
 
@@ -117,7 +121,17 @@ fn expected_len(width: u32, height: u32) -> Result<usize> {
     if width == 0 || height == 0 {
         return Err(KakeraError::ZeroDimension { width, height });
     }
-    Ok(width as usize * height as usize * 4)
+    let bytes = rgba_byte_len(width as u128, height as u128)
+        .ok_or_else(|| image_too_large(width as u128, height as u128))?;
+    usize::try_from(bytes).map_err(|_| image_too_large(width as u128, height as u128))
+}
+
+pub(crate) fn rgba_byte_len(width: u128, height: u128) -> Option<u128> {
+    width.checked_mul(height)?.checked_mul(4)
+}
+
+pub(crate) fn image_too_large(width: u128, height: u128) -> KakeraError {
+    KakeraError::ImageTooLarge { width, height }
 }
 
 #[cfg(test)]
@@ -166,5 +180,18 @@ mod tests {
         let img = RgbaImage::zeroed(3, 2).unwrap();
         assert_eq!(img.as_bytes().len(), 3 * 2 * 4);
         assert!(img.as_bytes().iter().all(|&b| b == 0));
+    }
+
+    #[test]
+    fn new_rejects_dimensions_whose_len_exceeds_usize() {
+        let err = RgbaImage::new(u32::MAX, u32::MAX, Vec::new()).unwrap_err();
+        assert!(matches!(
+            err,
+            KakeraError::ImageTooLarge {
+                width: 4_294_967_295,
+                height: 4_294_967_295,
+                ..
+            }
+        ));
     }
 }

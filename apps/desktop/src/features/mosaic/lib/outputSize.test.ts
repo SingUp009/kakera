@@ -31,6 +31,15 @@ describe("computeOutputSize", () => {
     ).toBeNull();
   });
 
+  it("does not apply the browser canvas edge limit on desktop", () => {
+    const s = computeOutputSize(17000, 16, {
+      cell_width: 16,
+      cell_height: 16,
+      output_scale: 1,
+    });
+    expect(outputSizeError(s!)).toBeNull();
+  });
+
   it("flags oversized output", () => {
     const s = computeOutputSize(20000, 20000, {
       cell_width: 16,
